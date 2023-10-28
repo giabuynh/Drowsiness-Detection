@@ -1,0 +1,102 @@
+<script>
+    const getImage = (imgByte) => {
+        const carousel = document.querySelector(".carousel-inner");
+        const indicator = document.querySelector(".carousel-indicators");
+        const imgCount = indicator.childElementCount;
+
+        const imgContainer = document.createElement("div");
+        imgContainer.classList.add("carousel-item");
+        if (imgCount == 0) imgContainer.classList.add("active");
+
+        imgContainer.innerHTML = `
+                <img class="d-block w-100" src="data:image/png;base64,${imgByte}"
+                    alt="Fourth slide">
+        `;
+        carousel.appendChild(imgContainer);
+
+        indicator.innerHTML = indicator.innerHTML + `<li data-target="#carouselExampleIndicators" data-slide-to="${imgCount}"></li>`;
+    }
+</script>
+<script>
+    const room = "{{ request.user.profile.company.roomCode }}";
+    const driveID = "{{ drive.id }}";
+    const piDeviceID = "{{ drive.device.id }}";
+
+    let socketUrl = `ws://${window.location.host}/ws/realtime/${room}/none/`;
+    let socket = new ReconnectingWebSocket(socketUrl);
+
+    let imageTaken = false;
+
+    socket.onopen = function (e) {
+        socket.send(
+            JSON.stringify({
+                command: "getVideo",
+                piDeviceID: piDeviceID,
+                driveID: driveID,
+            })
+        );
+    };
+
+    socket.onmessage = function (e) {
+        let data = JSON.parse(e.data);
+
+        // handle notifications
+        if (data["messageType"] === "notification") {
+            notify();
+            const { alertType, licensePlate, time, driveUrl } = data;
+            if (!popUpVisible) popUp(licensePlate, driveUrl);
+            notifyDetail(alertType, licensePlate, time, driveUrl);
+        }
+        // Receive message from server 
+        else if (data["messageType"] === "sendImg") {
+            if (data["driveID"] === driveID) {
+                getImage(data["frame"]);
+                const pictureSections = document.getElementById("pictures-section");
+                pictureSections.classList.remove("hide-picture");
+
+                if (!imageTaken) {
+                    const loading = document.querySelector(".loading-section");
+                    loading.remove();
+                }
+                
+                imageTaken = true;
+            }
+        }
+        // Deteting whether if there is changes in the status of the car
+        else if (data["messageType"] === "status") {
+            if (data["piID"] == piDeviceID && data["status"] && !imageTaken) {
+                socket.send(
+                    JSON.stringify({
+                        command: "getVideo",
+                        piDeviceID: piDeviceID,
+                        driveID: driveID,
+                    })
+                );
+            }
+            if (data["driveID"] == driveID && !data["status"]) {
+                const statusInfo = document.getElementById("status");
+                const today = new Date();
+                const date = today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate();
+                const time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
+                const dateTime = date+' '+time;
+                statusInfo.innerHTML = `
+                    <p class="col-5">Thời gian kết thúc:</p>
+                    <p class="col-7">${dateTime}</p>
+                `;
+            }
+        }
+    };
+
+    setTimeout(() => {
+        if (!imageTaken) {
+            const noImgIndentifier = document.getElementById("no-img");
+            noImgIndentifier.classList.remove("hide");
+
+            const loadingIndentifier = document.getElementById("loading-identifier");
+            loadingIndentifier.classList.add("hide");
+
+            const loadingAnimation = document.querySelector(".loading-animation");
+            loadingAnimation.classList.add("hide");
+        }
+    }, 5000)
+</script>

@@ -1,0 +1,262 @@
+{% extends 'base.html' %}
+{% load static %}
+
+
+{% block modal %}
+{% include 'search-modal.html' %}
+{% include 'sidebar.html' %}
+{% endblock modal %}
+
+{% block content %}
+{% include "navbar-search.html" %}
+<style>
+    .alerts-container {
+        display: flex;
+        padding: 10px 20px;
+        border-radius: 20px;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .alerts-container__info {
+        width: 30%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .alerts-container__info i {
+        font-size: 50px;
+        margin-bottom: 10px;
+    }
+
+    .alerts-container__info .break-line {
+        width: 100%;
+        height: 2px;
+        margin: 10px 0;
+        background-color: var(--navy);
+
+        transition: all .2s ease-in;
+    }
+
+    .alerts-container__warn {
+        width: 30%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .alerts-container__warn i {
+        color: orange;
+        margin: 20px 0;
+        font-size: 50px;
+    }
+</style>
+
+<style>
+.dedcription-btn {
+    width: 200px;
+    text-decoration: none;
+    position: relative;
+    display: inline-block;
+    border-radius: 30px;
+    background-color: #fcfcfc;
+    color: var(--navy);
+    font-size: 18px;
+    padding: 9px 0;
+    transition: all 0.3s;
+    padding-left: 20px;
+    /* margin-left: auto; */
+    box-shadow: 0 3px 20px 0 rgba(0, 0, 0, 0.06);
+}
+.dedcription-btn .btn-icon {
+    background-color: var(--navy);
+    width: 92px;
+    height: 45px;
+    float: right;
+    position: absolute;
+    border-radius: 30px 30px 30px 0;;
+    right: 0px;
+    top: 0px;
+    transition: all 0.3s;
+}
+.name-descripeion {
+    position: relative;
+    z-index: 9999;
+}
+.btn-icon::after {
+    content: "";
+    width: 0;
+    height: 0;
+    border-top: 45px solid #fcfcfc;
+    border-right: 40px solid transparent;
+    position: absolute;
+    top: 0px;
+    left: 0px;
+}
+.dedcription-btn:hover .btn-icon {
+    width: 100%;
+    border-radius: 30px;
+}
+.dedcription-btn:hover .btn-icon::after {
+    display: none;
+    opacity: 0.1;
+}
+.btn-icon i {
+    position: absolute;
+    right: 25px;
+    top: 15px;
+    color: #fff;
+}
+.dedcription-btn:hover {
+    color: #fff!important;
+}
+
+.hover-box {
+    display: flex;
+    width: 100%;
+    height: 100vh;
+    justify-content: center;
+    align-items: center;
+}
+</style>
+<div class="content-container">
+    <h3>Danh sách các báo động</h3>
+
+    {% if drs|length == 0 %}
+    <h4 style="margin-top: 2rem;">Không có cảnh cáo nào được ghi nhận</h4>
+    {% endif %}
+
+    <div class="drive-wrapper">
+        {% for drive in drs %}
+        <div style="background: lightblue; margin-bottom: 50px;" class="alerts-container" id="{{ drive.id }}">
+            <div class="alerts-container__info">
+                <i class="fas fa-car-crash"></i>
+                {% if drive.device.car %}
+                <h3>{{ drive.device.car.licensePlate }}</h3>
+                {% else %}
+                <h3>Xe không xác định</h3>
+                {% endif %}
+                <div class="break-line"></div>
+                <h5>Khởi hành lúc {{ drive.startTime.time }}, ngày {{ drive.startTime.date }}</h5>
+            </div>
+
+            <div class="alerts-container__warn">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h5>{{ drive.alert_set.all|length }} cảnh cáo</h5>
+            </div>
+            
+            
+            <a class="dedcription-btn" href="{% url 'driveDetail' drive.id %}">
+                <span class="name-descripeion">Chi tiết</span>
+                <div class="btn-icon book">
+                    <i class="fas fa-exclamation-triangle"></i>          
+                </div>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock content %}
+
+{% block websocket %} 
+<script>
+    let ongoingDrives = [];
+
+    const addAlert = (licensePlate) => {
+        const drive = ongoingDrives.find(drive => drive.licensePlate === licensePlate);
+
+        if (!drive) return;
+        
+        drive.alerts++;
+
+        const driveContainer = document.getElementById(drive.id);
+        if (driveContainer) {
+            const alertDisplay = driveContainer.querySelector(".alerts-container__warn h5");
+            alertDisplay.innerHTML = `${drive.alerts} cảnh cáo`;
+        }
+        else {
+            const drivesWrapper = document.querySelector(".drive-wrapper");
+            const newAlertContainer = document.createElement("div");
+            newAlertContainer.classList.add("alerts-container");
+            newAlertContainer.style.background = "lightblue";
+            newAlertContainer.style.marginBottom = "50px";
+            newAlertContainer.id = drive.id;
+            
+            newAlertContainer.innerHTML = `
+                <div class="alerts-container__info">
+                    <i class="fas fa-car-crash"></i>
+                    <h3>${drive.licensePlate}</h3>
+                    <div class="break-line"></div>
+                    <h5>Khởi hành lúc ${drive.startTime}</h5>
+                </div>
+
+                <div class="alerts-container__warn">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h5>${drive.alerts} cảnh cáo</h5>
+                </div>
+                
+                
+                <a class="dedcription-btn" href="${drive.driveUrl}">
+                    <span class="name-descripeion">Chi tiết</span>
+                    <div class="btn-icon book">
+                        <i class="fas fa-exclamation-triangle"></i>          
+                    </div>
+                </a>
+            `;
+            drivesWrapper.prepend(newAlertContainer);
+        }
+    }
+
+</script>
+<script>
+    const room = "{{ request.user.profile.company.roomCode }}";
+
+    let socketUrl = `ws://${window.location.host}/ws/realtime/${room}/none/`;
+    let socket = new ReconnectingWebSocket(socketUrl);
+
+
+    socket.onmessage = function (e) {
+        let data = JSON.parse(e.data);
+        console.log(data);
+
+        if (data["messageType"] === "status") {
+            if (data["status"]) {
+                const today = new Date();
+                const date = `${today.getDate()}-${today.getMonth()}-${today.getFullYear()}`;
+                const time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
+                const dateTime = `${time}, ngày ${date}`;
+
+                const newDrive = {
+                    id: data["driveID"],
+                    startTime: dateTime,
+                    licensePlate: data["licensePlate"],
+                    driveUrl: data["driveUrl"],
+                    alerts: 0,
+                }
+
+                ongoingDrives.push(newDrive);
+            }
+            else {
+                ongoingDrives = ongoingDrives.filter(drive => {
+                    return drive.licensePlate !== data["licensePlate"];
+                });
+            }
+            console.log(ongoingDrives);
+        }
+
+        // Notify when there are warnings
+        if (data["messageType"] === "notification") {
+            notify();
+            const { alertType, licensePlate, time, driveUrl } = data;
+            if (!popUpVisible) popUp(licensePlate, driveUrl);
+            notifyDetail(alertType, licensePlate, time, driveUrl);
+            addAlert(licensePlate);
+        }
+    };
+
+</script>
+{% endblock %}

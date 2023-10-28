@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block modal %}
+{% include "sidebar.html" %}
+{% endblock modal %}
+
+{% block content %}
+{% include "navbar.html" %}
+<style>
+.none-image-receive,
+.loading-section {
+    margin-top: 100px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+
+.loading-animation {
+    display:flex;
+    justify-content: center;
+    margin-top: 50px;
+}
+
+.loading-animation div {
+    width: 20px;
+    height: 20px;
+    background-color: var(--navy);
+    border-radius: 50%;
+    -webkit-border-radius: 50%;
+    -moz-border-radius: 50%;
+    -ms-border-radius: 50%;
+    -o-border-radius: 50%;
+    margin: 0 5px;
+    animation-name: up-and-down;
+    animation-duration: 0.4s;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+}
+
+.loading-animation .two {
+    animation-delay: 0.1s;
+}
+
+.loading-animation .three {
+    animation-delay: 0.2s;
+}
+@keyframes up-and-down {
+  to {
+    opacity: 0.2;
+    transform: translateY(-20px);
+    -webkit-transform: translateY(-20px);
+    -moz-transform: translateY(-20px);
+    -ms-transform: translateY(-20px);
+    -o-transform: translateY(-20px);
+    }
+}
+</style>
+<div class="content-container">
+    <!-- Car Detail Information -->
+    <div class="car-detail">
+        <div class="avt col-lg-2 col-3">
+            <img src="{% static '/images/web/car-image.svg' %}" alt="" />
+        </div>
+        <div class="info col-lg-10 col-9">
+            <p class="license-plate">{{ drive.device.car.licensePlate }}</p>
+            <p class="device-id">Tên Ô-tô: {{ drive.device.car.name }}</p>
+            <div class="row">
+                <p class="col-5">Thời gian khởi hành:</p>
+                <p class="col-7">{{ drive.startTime }}</p>
+            </div>
+            <div class="row">
+                <p class="col-5">Cảnh báo trong chuyến đi:</p>
+                <p class="col-7" id="warning">
+                    {% if alerts > 0 %}
+                    <span class="warning-circle">&#11044;</span>
+                    Phát hiện {{ alerts }} dấu hiệu bất thường 
+                    {% else %}
+                    <span class="deactive-circle">&#11044;</span>
+                    Không có dấu hiệu {% endif %}
+                </p>
+            </div>
+            <div class="row">
+                <p class="col-5">Độ cồn:</p>
+                <p class="col-7">
+                    <img src="{% static '/images/web/alcohol-icon.svg' %}" alt="" />
+                    {% if alcohol %}
+                    Có dấu hiệu sử dụng đồ uống có cồn
+                    {% else %}
+                    Không có dấu hiệu sử dụng đồ uống có cồn
+                    {% endif %}
+                </p>
+            </div>
+            <div class="row" id="status">
+                {% if drive.status == "ended" %}
+                <p class="col-5">Thời gian kết thúc:</p>
+                <p class="col-7">{{ drive.endTime }}</p>
+                {% else %}
+                <p class="col-5">Trạng thái:</p>
+                <p class="col-7">Đang hoạt động</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="loading-section">
+            <h5 id="no-img" class="hide">Không nhận được hình ảnh</h5>
+            <h5 id="loading-identifier">Đang kết nối với thiết bị Raspberry</h5>
+            <div class="loading-animation">
+                <div class="one"></div>
+                <div class="two"></div>
+                <div class="three"></div>
+            </div>
+        </div>
+        
+        <!-- Pictures Section -->
+        <div
+            class="
+                clip-section
+                d-flex
+                flex-column
+                justify-content-center
+                hide-picture
+            "
+
+            id="pictures-section"
+        >
+            <p class="component-title">Cảnh báo:</p>
+            <div class="embeded-clip-wrapper d-flex flex-column">
+                <div
+                    id="carouselExampleIndicators"
+                    class="carousel slide"
+                    data-ride="carousel"
+                >
+                    <ol class="carousel-indicators"></ol>
+                    <div class="carousel-inner"></div>
+                    <a
+                        class="carousel-control-prev"
+                        href="#carouselExampleIndicators"
+                        role="button"
+                        data-slide="prev"
+                    >
+                        <span
+                            class="carousel-control-prev-icon"
+                            aria-hidden="true"
+                        ></span>
+                        <span class="sr-only">Previous</span>
+                    </a>
+                    <a
+                        class="carousel-control-next"
+                        href="#carouselExampleIndicators"
+                        role="button"
+                        data-slide="next"
+                    >
+                        <span
+                            class="carousel-control-next-icon"
+                            aria-hidden="true"
+                        ></span>
+                        <span class="sr-only">Next</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block websocket %} 
+{% include "api.html" %}
+{% endblock %}

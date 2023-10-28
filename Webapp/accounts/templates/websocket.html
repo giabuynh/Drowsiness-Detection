@@ -1,0 +1,58 @@
+<script>
+    // Switch status of cars in page
+    const switchStatus = (licensePlate, online = true) => {
+        const displayCards = document.getElementById(licensePlate);
+        const statusPara = displayCards.querySelector("p:not(.license-plate)")
+        const statusCircle = statusPara.querySelector("span");
+
+        const text = (online) ? "Đang hoạt động" : "Không hoạt động";
+
+        if (online) {
+            statusCircle.classList.remove("deactive-circle");
+            statusCircle.classList.add("active-circle");
+            displayCards.classList.add("online");
+        }
+        else {
+            statusCircle.classList.add("deactive-circle");
+            statusCircle.classList.remove("active-circle");
+            displayCards.classList.remove("online");
+        }
+
+        const spanHTML = statusCircle.outerHTML;
+        statusPara.innerHTML = `${spanHTML} ${text}`;
+    }
+    
+</script>
+<script>
+    const room = "{{ request.user.profile.company.roomCode }}";
+
+    let socketUrl = `ws://${window.location.host}/ws/realtime/${room}/none/`;
+    let socket = new ReconnectingWebSocket(socketUrl);
+
+    socket.onopen = function (e) {
+        console.log("Connection established");
+    };
+
+    socket.onmessage = function (e) {
+        let data = JSON.parse(e.data);
+        console.log(data);
+
+        // switching status whenever any car is online or offline
+        if (data["messageType"] === "status") {
+            switchStatus(data["licensePlate"], data["status"]);
+        }
+
+        // Notify when there are warnings
+        else if (data["messageType"] === "notification") {
+            notify();
+            const { alertType, licensePlate, time, driveUrl } = data;
+
+            if (!popUpVisible) popUp(licensePlate, driveUrl);
+            notifyDetail(alertType, licensePlate, time, driveUrl);
+        }
+    };
+
+    socket.onclose = function (e) {
+        console.log("Connection closed");
+    };
+</script>

@@ -1,0 +1,238 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block modal %}
+<!-- Add Device Modal -->
+<div
+    class="modal fade"
+    id="DeviceModal"
+    tabindex="-1"
+    role="dialog"
+    aria-labelledby="exampleModalLabel"
+    aria-hidden="true"
+>
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <!-- Add car form  -->
+            <section class="form">
+                <p class="title">THÔNG TIN THIẾT BỊ</p>
+                <p class="messages" id="device-message"></p>
+                <form id="DeviceForm" method="POST">
+                    {% csrf_token %}
+                    <!-- Device ID -->
+                    <div class="form-field">
+                        <input
+                            type="text"
+                            name="carName"
+                            id="device-name"
+                            placeholder=" "
+                            required
+                        />
+                        <label for="carName">
+                            <span class="input-label">
+                                Tên (Loại) Xe
+                                <span class="required-star">*</span>
+                            </span>
+                        </label>
+                    </div>
+                    <!-- License plate -->
+                    <div class="form-field">
+                        <input
+                            type="text"
+                            name="licensePlate"
+                            id="device-license-plate"
+                            placeholder=" "
+                            required
+                        />
+                        <label for="licensePlate">
+                            <span class="input-label">
+                                Bảng số xe
+                                <span class="required-star">*</span>
+                            </span>
+                        </label>
+                    </div>
+                    <!-- Raspberry Pi ID -->
+                    <div class="form-field">
+                        <input
+                            type="text"
+                            name="rasID"
+                            placeholder=" "
+                            required
+                            maxlength="8"
+                        />
+                        <label for="rasID">
+                            <span class="input-label">
+                                ID thiết bị
+                                <span class="required-star">*</span>
+                            </span>
+                        </label>
+                    </div>
+                    <!-- Raspberry Pi password -->
+                    <div class="form-field">
+                        <input
+                            type="text"
+                            name="rasPass"
+                            placeholder=" "
+                            required
+                            maxlength="8"
+                            minlength="8"
+                        />
+                        <label for="raspName">
+                            <span class="input-label">
+                                Mật khẩu thiết bị
+                                <span class="required-star">*</span>
+                            </span>
+                        </label>
+                    </div>
+                    <!-- Sign in button  -->
+                    <div class="form-field buttons">
+                        <button
+                            id="DeviceBtn"
+                            type="submit"
+                            href="#"
+                            class="btn blue-btn long-btn"
+                        >
+                            LƯU THÔNG TIN
+                        </button>
+                        <!-- if this form is used in adding action, then the button will display THEM THIET BI and its color is yellow -->
+                    </div>
+                </form>
+            </section>
+        </div>
+    </div>
+</div>
+{% for car in cars %}
+<!-- Edit Info Modal -->
+<!-- Invidual Device Modal -->
+<div class="modal fade" id="DeviceModal{{ car.id }}" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <!-- Edit form  -->
+            <section class="form">
+                <!-- <button type="button" class="close" data-dismiss="modal">&times;</button> -->
+                <p class="title">THÔNG TIN THIẾT BỊ</p>
+                <p class="messages" id="device-message"></p>
+                <form id="DeviceForm{{ car.id }}" method="POST">
+                    {% csrf_token %}
+                    <!-- Device ID -->
+                    <div class="form-field">
+                        <input type="text" name="device-id" id="device-id{{ car.id }}" readonly="readonly"
+                            value="{{ car.id }}">
+                        <label for="device-id">
+                            <span class="input-label">Mã số thiết bị <span class="required-star">*</span></span>
+                        </label>
+                    </div>
+                    <!-- Device Name -->
+                    <div class="form-field">
+                        <input type="text" name="name" id="device-name{{ car.id }}" placeholder="Car Name" required
+                            value="{{ car.name }}">
+                        <label for="name">
+                            <span class="input-label">Tên Thiết Bị <span class="required-star">*</span></span>
+                        </label>
+                    </div>
+                    <!-- License plate -->
+                    <div class="form-field">
+                        <input type="text" name="licensePlate" id="device-license-plate{{ car.id }}" placeholder=" "
+                            required value="{{ car.licensePlate }}">
+                        <label for="licensePlate">
+                            <span class="input-label">Bảng số xe <span class="required-star">*</span></span>
+                        </label>
+                    </div>
+                    <!-- Sign in button  -->
+                    <div class="form-field buttons">
+                        <button id="DeviceBtn{{ car.id }}" type="submit" href="#"
+                            class="btn light-blue-btn long-btn">LƯU THÔNG
+                            TIN</button>
+                        <!-- if this form is used in adding action, then the button will display THEM THIET BI and its color is yellow -->
+                    </div>
+                </form>
+            </section>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm Delete Modal -->
+<div class="modal fade" id="ConfirmDeleteModal{{ car.id }}" tabindex="-1" role="dialog"
+    aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="alert">
+        <div class="modal-content">
+            <div class="top">
+                <img src="{% static '/images/web/warning-delete-vector.svg' %}" alt="Delete Icon" title="Delete"
+                    width="100vw">
+            </div>
+            <p class="title">Xác nhận xóa</p>
+            <p class="subtitle">Bạn có chắc muốn xóa thiết bị {{ car.licensePlate }}?</b></p>
+            <div class="buttons d-flex flex-row">
+                <button type="button" name="modal-btn-cancel" class="col-5 btn light-blue-btn" data-dismiss="modal"
+                    aria-hidden="true">TRỞ VỀ</button>
+                <a href="{% url 'removeCar' car.id %}" type="button" name="modal-btn-delete" class="col-5 btn light-red-btn"
+                    aria-hiddent="true"> XÓA </a>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- End edit modal -->
+{% endfor %}
+{% include "sidebar-add.html" %}
+{% include 'search-modal.html' %}
+{% endblock modal %}
+
+{% block content %}
+{% include "navbar-search.html" %}
+<div class="content-container">
+    {% for err, msg in errors.items %}
+    <h5 style="font-size: 15px; color: red;">{{ msg }}</h5>
+    {% endfor %}
+    <!-- Car information -->
+    {% if cars|length == 0 %}
+    <h2>Công ty bạn chưa bổ sung xe</h2>
+    {% endif %}
+
+
+    {% for car in cars %}
+    <div 
+        class="card
+            {% if car.raspdevice.status == 'online' %}
+            online
+            {% endif %} 
+        " 
+        id="{{ car.licensePlate }}"
+    >
+        <div class="card-body row">
+            <div class="avt col-lg-2 col-3">
+                <img src="{% static '/images/web/car-image.svg' %}" alt="">
+            </div>
+            <div class="info col-lg-9 col-7">
+                <p class="license-plate">{{ car.name }} ( Biển số xe: {{ car.licensePlate }})</p>
+                <p>
+                    {% if car.raspdevice.status == 'offline' %}
+                    <span class="deactive-circle">&#11044;</span>
+                    Không hoạt động
+                    {% else %}
+                    <span class="active-circle">&#11044;</span>
+                    Đang hoạt động
+                    {% endif %}
+                </p>
+            </div>
+            <div class="more col-lg-1 col-2 dropdown">
+                <a href="#" type="button" id="dropdownMenu-carxxx" data-toggle="dropdown" aria-haspopup="true"
+                    aria-expanded="true">&#8942;</a>
+                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenu-carxxx">
+                    <a class="dropdown-item" href="{% url 'carDrives' car.id %}">Chi tiết</a>
+                    <a class="dropdown-item" href="#" data-toggle="modal" data-target="#DeviceModal{{ car.id }}">Chỉnh
+                        sửa</a>
+                    <a class="dropdown-item" href="{% url 'removeCar' car.id %}" data-toggle="modal"
+                        data-target="#ConfirmDeleteModal{{ car.id }}">Xóa</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    <br>
+</div>
+{% endblock content%}
+
+{% block websocket %}
+{% include "websocket.html" %}
+{% endblock %}

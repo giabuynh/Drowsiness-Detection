@@ -1,0 +1,202 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block modal %}
+{% include 'search-modal.html' %}
+{% include 'sidebar.html' %}
+{% endblock modal %}
+
+
+{% block content %}
+{% include 'navbar-search.html' %}
+<style>
+    .driver-container {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 20px;
+        border-radius: 1000px;
+    }
+
+    .driver-container h3 {
+        margin: 0;
+        padding: 0;
+        font-size: 18px;
+    }
+
+    .driver-container__info {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .driver-container__info i {
+        font-size: 50px;
+        margin-bottom: 1rem;
+    }
+
+    .driver-container__info h3 {
+        font-size: 1.5rem;
+    }
+
+    .driver-container__time h3 {
+        font-size: 1.5rem;
+        letter-spacing: 1px;
+        margin: .5rem;
+    }
+
+
+    .driver-container a {
+        text-decoration: none;
+    }
+
+    .driver-container .fa-arrow-up {
+        font-size: 30px;
+        color: var(--navy)
+    }
+</style>
+<div class="content-container">
+    <h3>Danh sách các chuyến xe</h3>
+    
+    {% if drs|length == 0 %}
+    <h4 style="margin-top: 2rem;" id="empty-message">Không có chuyến xe nào được ghi nhận</h4>
+    {% endif %}
+
+    <div class="drive-wrapper">
+        {% for drive in drs %}
+        <div   
+            style="
+                {% if drive.endTime %}
+                background: lightblue; 
+                {% else%}
+                background: rgba(123, 217, 108, 0.4);
+                {% endif %}
+
+                margin-bottom: 50px;"
+            
+            class="driver-container"
+            id="{{ drive.id }}"
+            {% if drive.endTime %}
+            online="0" 
+            {% else%}
+            online="1" 
+            {% endif %}
+        >
+            <br>
+            <div class="driver-container__info">
+                <i class="fas fa-car-side"></i>
+
+                {% if drive.device.car %}
+                <h3> {{ drive.device.car.licensePlate }} </h3>
+                {% else %}
+                <h3> Xe không xác định </h3>
+                {% endif %}
+            </div>
+            <div class="driver-container__time">
+                <h3>
+                    <!-- <i class="fas fa-play"></i>  -->
+                    Khởi hành: 
+                    {{ drive.startTime.time }}, ngày {{ drive.startTime.date }}
+                </h3>
+                {% if drive.endTime %}
+                <h3>
+                    Kết thúc: 
+                    {{ drive.endTime.time }}, ngày {{ drive.endTime.date }}
+                </h3>
+                {% else %}
+                <h3>Xe dang hoat dong</h3>
+                {% endif %}
+            </div>
+            
+            <a href="{% url 'driveDetail' drive.id  %}">
+                <i style="transform: rotate(90deg);" class="fas fa-arrow-up"></i>
+            </a>
+            <br>
+        </div>
+        {% endfor %}
+    </div>
+    
+</div>
+{% endblock content %}
+
+{% block websocket %} 
+<script>
+    // Switch status of cars in page
+    const addDrive = (data) => {
+        const emptyMessage = document.getElementById("empty-message");
+        if (emptyMessage) document.querySelector(".content-container").removeChild(emptyMessage);
+        
+        const licensePlate = data["licensePlate"];
+        const status = data["status"];
+        const driveID = data["driveID"];
+        const driveUrl = data["driveUrl"];
+
+        const today = new Date();
+        const date = `${today.getDate()}-${today.getMonth()}-${today.getFullYear()}`;
+        const time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
+        const dateTime = `${time}, ngày ${date}`;
+
+        if (status) {
+            const container = document.querySelector(".drive-wrapper");
+            const newDriveContainer = document.createElement("div");
+            newDriveContainer.classList.add("driver-container");
+            newDriveContainer.style.background = "rgba(123, 217, 108, 0.4)";
+            newDriveContainer.style.marginBottom = "50px";
+            newDriveContainer.id = driveID;
+
+            newDriveContainer.innerHTML = `
+            <br>
+            <div class="driver-container__info">
+                <i class="fas fa-car-side"></i>
+                <h3>${licensePlate}</h3>
+            </div>
+            <div class="driver-container__time">
+                <h3>
+                    Khởi hành: ${dateTime}
+                </h3>
+                <h3>Xe dang hoat dong</h3>
+            </div>
+        
+            <a href="${driveUrl}">
+                <i style="transform: rotate(90deg);" class="fas fa-arrow-up"></i>
+            </a>
+            <br>
+            `;
+            container.prepend(newDriveContainer);
+        }
+        else {
+            const endedDrive =  document.getElementById(driveID);
+            endedDrive.style.background = "lightblue";
+
+            const endTime =  endedDrive.querySelector(".driver-container__time h3:nth-child(2)");
+            endTime.innerText = `Kết thúc: ${dateTime}`;
+        }
+    }
+    
+</script>
+<script>
+    const room = "{{ request.user.profile.company.roomCode }}";
+
+    let socketUrl = `ws://${window.location.host}/ws/realtime/${room}/none/`;
+    let socket = new ReconnectingWebSocket(socketUrl);
+
+
+    socket.onmessage = function (e) {
+        let data = JSON.parse(e.data);
+
+        // switching status whenever any car is online or offline
+        if (data["messageType"] === "status") {
+            addDrive(data);
+        }
+
+        // Notify when there are warnings
+        else if (data["messageType"] === "notification") {
+            notify();
+            const { alertType, licensePlate, time, driveUrl } = data;
+            if (!popUpVisible) popUp(licensePlate, driveUrl);
+            notifyDetail(alertType, licensePlate, time, driveUrl);
+        }
+    };
+</script>
+{% endblock %}
